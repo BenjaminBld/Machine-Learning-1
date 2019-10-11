@@ -68,8 +68,8 @@ target = "Succès"
 # In[11]:
 
 
-features_categ = [u'Réalisateur', u'Scénariste', u'Compositeur', u'Directeur photo', u'Directeur montage',
-             u'Acteur 1', u'Acteur 2', u'Acteur 3', u'Genre']
+features_categ = ['Réalisateur', 'Scénariste', 'Compositeur', 'Directeur photo', 'Directeur montage',
+             'Acteur 1', 'Acteur 2', 'Acteur 3', 'Genre']
 
 
 # In[12]:
