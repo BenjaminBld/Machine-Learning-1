@@ -13,4 +13,3 @@ Notebook:
 
 
 ./src/linear_regression_movie_profitability.ipynb : using linear regression in order to predict movies profitability in %.
--> has been removed and will be updated later
