@@ -48,12 +48,12 @@ class RegressionModel:
     """
 
     def __init__(
-        self, 
-        model: BaseEstimator, 
-        features: List[str], 
-        target: str, 
-        title: str, 
-        feature_to_encode: Optional[str] = None
+        self,
+        model: BaseEstimator,
+        features: List[str],
+        target: str,
+        title: str,
+        feature_to_encode: Optional[str] = None,
     ):
         """
         Parameters
@@ -89,24 +89,41 @@ class RegressionModel:
 
     def preprocess(self) -> None:
         """Preprocesses the data."""
-        if all(item in self.df.columns for item in [self.title] + self.features + [self.target]):
-            # One-hot encode the specified feature if it exists
+        if all(
+            item in self.df.columns
+            for item in [self.title] + self.features + [self.target]
+        ):
+            # Fill missing numerical values with median and categorical values with the most frequent category
+            for column in self.df.columns:
+                if self.df[column].dtype == np.dtype(
+                    "O"
+                ):  # if the column is categorical
+                    self.df[column].fillna(self.df[column].mode()[0], inplace=True)
+                else:  # if the column is numerical
+                    self.df[column].fillna(self.df[column].median(), inplace=True)
+
+            # One-hot encode the specified feature if it exists and is categorical
             if self.feature_to_encode in self.df.columns:
-                self.one_hot_encode(self.feature_to_encode)
+                if str(self.df[self.feature_to_encode].dtype) == "object":
+                    self.one_hot_encode(self.feature_to_encode)
+                else:
+                    logging.warning(
+                        f"Feature '{self.feature_to_encode}' is not categorical. Skipping one-hot encoding."
+                    )
+
             self.df = self.df[[self.title] + self.features + [self.target]]
             scaler = StandardScaler()
             self.df[self.features] = scaler.fit_transform(self.df[self.features])
-            print(self.df.columns)  # print the columns after preprocessing
-
             logging.info("Data preprocessing completed.")
         else:
-            raise ValueError("Some of the specified features or target are not present in the DataFrame.")
+            raise ValueError(
+                "Some of the specified features or target are not present in the DataFrame."
+            )
 
-    
     def one_hot_encode(self, column: str) -> None:
         """One-hot encodes a specified column."""
         # Create the encoder
-        encoder = OneHotEncoder(sparse=False, drop='first')
+        encoder = OneHotEncoder(sparse=False, drop="first")
 
         # Fit the encoder and transform the data
         transformed_data = encoder.fit_transform(self.df[[column]])
@@ -124,7 +141,9 @@ class RegressionModel:
         self.df = pd.concat([self.df, encoded_df], axis=1)
 
         # Update the features list to include the new one-hot encoded features and exclude the original categorical feature
-        self.features = [feature for feature in self.features if feature != column] + list(encoded_features)
+        self.features = [
+            feature for feature in self.features if feature != column
+        ] + list(encoded_features)
 
     def train_and_evaluate(self, seed: int, test_size: float = 0.2) -> dict:
         """
@@ -171,10 +190,27 @@ class RegressionModel:
         )
         mse_scores = -scores
         rmse_scores = np.sqrt(mse_scores)
-        mae_scores = -cross_val_score(self.model, X_train, y_train, scoring="neg_mean_absolute_error", cv=KFold(n_splits=5, shuffle=True, random_state=seed))
-        r2_scores = cross_val_score(self.model, X_train, y_train, scoring="r2", cv=KFold(n_splits=5, shuffle=True, random_state=seed))
+        mae_scores = -cross_val_score(
+            self.model,
+            X_train,
+            y_train,
+            scoring="neg_mean_absolute_error",
+            cv=KFold(n_splits=5, shuffle=True, random_state=seed),
+        )
+        r2_scores = cross_val_score(
+            self.model,
+            X_train,
+            y_train,
+            scoring="r2",
+            cv=KFold(n_splits=5, shuffle=True, random_state=seed),
+        )
 
-        return {'mse': mse_scores.mean(), 'rmse': rmse_scores.mean(), 'mae': mae_scores.mean(), 'r2': r2_scores.mean()}
+        return {
+            "mse": mse_scores.mean(),
+            "rmse": rmse_scores.mean(),
+            "mae": mae_scores.mean(),
+            "r2": r2_scores.mean(),
+        }
 
     def make_predictions(self, metrics: dict) -> None:
         """
@@ -187,13 +223,18 @@ class RegressionModel:
 
         Notes
         -----
-        The predictions are saved to a CSV file in the '../predictions/regression' directory. 
+        The predictions are saved to a CSV file in the '../predictions/regression' directory.
         The metrics are saved to a text file in the same directory.
         """
 
         y_pred = self.model.predict(self.X_test)
-        predictions = pd.DataFrame({self.title: self.titles_test, "Predicted " + self.target: y_pred})
+        predictions = pd.DataFrame(
+            {self.title: self.titles_test, "y_pred": y_pred, "y_true": self.y_test}
+        )
         file_name = f'../predictions/regression/predictions_{self.model.__class__.__name__}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}'
+        os.makedirs(
+            os.path.dirname(file_name), exist_ok=True
+        )  # Ensure the directory exists
         predictions.to_csv(file_name + ".csv", index=False)
         with open(file_name + "_metrics.txt", "w") as f:
             f.write(f"Metrics: {metrics}")
@@ -205,7 +246,7 @@ def main():
     The main function that orchestrates the movie profitability prediction process.
     It loads the data, preprocesses it, trains a linear regression model, evaluates it, and makes predictions.
     """
-    logging.basicConfig(filename='regression_model.log', level=logging.INFO)
+    logging.basicConfig(filename="regression_model.log", level=logging.INFO)
 
     # Define seed for random processes
     SEED = 42
@@ -228,11 +269,14 @@ def main():
         "Budget (M$)",
     ]
     from sklearn.linear_model import LinearRegression
+
     # Create a Linear Regression model
     model = LinearRegression()
 
     # Create a RegressionModel object
-    regressor = RegressionModel(model, features, target, title, feature_to_encode='Genre')
+    regressor = RegressionModel(
+        model, features, target, title, feature_to_encode="Genre"
+    )
 
     # Load the data
     regressor.load_data(filename)
