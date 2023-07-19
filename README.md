@@ -18,7 +18,7 @@ movie_profitability_classification.py: This script uses a Random Forest Classifi
 
 movie_profitability_regression.py: This script uses Linear Regression to predict a movie's profitability in percentage terms. It uses the same features as the classification script.
 
-Both scripts implement a flexible and reusable machine learning pipeline. This pipeline includes data loading, preprocessing, model training, and prediction. The preprocessing step includes handling of categorical variables via one-hot encoding and scaling of numerical features.
+Both scripts implement a flexible and reusable machine learning pipeline. This pipeline includes data loading, preprocessing, model training, and prediction.
 
 Predictions made by the scripts are saved in the ./predictions/classification and ./predictions/regression folders respectively.
 
