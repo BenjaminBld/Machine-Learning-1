@@ -224,4 +224,5 @@ def main():
     classifier.make_predictions(metrics)
 
 
-main()
+if __name__ == "__main__":
+    main()
